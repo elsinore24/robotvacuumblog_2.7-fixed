@@ -1,0 +1,113 @@
+/* BlogContent.css */
+
+/* Base styles for all content elements */
+.blog-content {
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Headings */
+.blog-content h1,
+.blog-content h2,
+.blog-content h3,
+.blog-content h4,
+.blog-content h5,
+.blog-content h6 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.blog-content h1 { font-size: 2.25rem; }
+.blog-content h2 { font-size: 1.8rem; }
+.blog-content h3 { font-size: 1.5rem; }
+.blog-content h4 { font-size: 1.25rem; }
+
+/* Paragraphs and spacing */
+.blog-content p {
+  margin-bottom: 1.25em;
+}
+
+/* Lists */
+.blog-content ul,
+.blog-content ol {
+  margin: 0 0 1.25em 1.5em;
+  padding-left: 1.5em;
+}
+
+.blog-content ul { list-style-type: disc; }
+.blog-content ol { list-style-type: decimal; }
+.blog-content li { margin-bottom: 0.5em; }
+
+/* Links */
+.blog-content a {
+  color: #3182ce;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.blog-content a:hover {
+  color: #2c5282;
+}
+
+/* Images */
+.blog-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 1.5em 0;
+}
+
+/* Blockquotes */
+.blog-content blockquote {
+  margin: 1.5em 0;
+  padding: 0.5em 1em 0.5em 1.5em;
+  border-left: 4px solid #e2e8f0;
+  color: #4a5568;
+  font-style: italic;
+}
+
+/* Code blocks */
+.blog-content pre {
+  background-color: #f7fafc;
+  border-radius: 4px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 1.5em 0;
+  font-family: monospace;
+}
+
+.blog-content code {
+  background-color: #f7fafc;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+/* Tables */
+.blog-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5em 0;
+}
+
+.blog-content th,
+.blog-content td {
+  border: 1px solid #e2e8f0;
+  padding: 0.5em 0.75em;
+  text-align: left;
+}
+
+.blog-content th {
+  background-color: #f7fafc;
+  font-weight: 600;
+}
+
+/* Horizontal rules */
+.blog-content hr {
+  border: 0;
+  border-top: 1px solid #e2e8f0;
+  margin: 2em 0;
+}
