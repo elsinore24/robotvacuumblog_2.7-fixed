@@ -8,10 +8,36 @@ import TurndownService from 'turndown';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 
-// Disable the warnings without needing the plugins
+// Configure marked to open external links in new tabs
+const renderer = new marked.Renderer();
+const linkRenderer = renderer.link;
+renderer.link = (href, title, text) => {
+  const html = linkRenderer.call(renderer, href, title, text);
+  
+  // Check if it's an external link (particularly Amazon)
+  if (href && (href.indexOf('http') === 0 || href.indexOf('amazon') !== -1)) {
+    return html.replace(/^<a /, '<a target="_blank" rel="noopener noreferrer" ');
+  }
+  return html;
+};
+
+// Apply custom renderer and disable warnings
 marked.setOptions({
   mangle: false,
-  headerIds: false
+  headerIds: false,
+  renderer: renderer
+});
+
+// Configure DOMPurify to allow target and rel attributes
+DOMPurify.addHook('afterSanitizeAttributes', function(node) {
+  // If the node is a link with an external URL or containing amazon
+  if (node.tagName === 'A' && node.getAttribute('href')) {
+    const href = node.getAttribute('href');
+    if (href.indexOf('http') === 0 || href.indexOf('amazon') !== -1) {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  }
 });
 
 // HTML Preview Component
@@ -103,6 +129,71 @@ const HtmlUploader = () => {
     }
   };
 
+  // Custom Turndown service that preserves external link attributes
+  const createTurndownService = () => {
+    const service = new TurndownService({
+      headingStyle: 'atx',
+      hr: '---',
+      bulletListMarker: '-',
+      codeBlockStyle: 'fenced'
+    });
+
+    // Add rules to exclude HTML structure elements
+    service.addRule('ignoreDoctype', {
+      filter: node => node.nodeType === 10, // Document type node
+      replacement: () => ''
+    });
+
+    service.addRule('ignoreHead', {
+      filter: 'head',
+      replacement: () => ''
+    });
+
+    service.addRule('ignoreScript', {
+      filter: 'script',
+      replacement: () => ''
+    });
+
+    service.addRule('ignoreStyle', {
+      filter: 'style',
+      replacement: () => ''
+    });
+
+    // Custom link rule to preserve Amazon links 
+    service.addRule('links', {
+      filter: 'a',
+      replacement: function(content, node) {
+        const href = node.getAttribute('href');
+        const title = node.getAttribute('title');
+        const isExternal = href && (href.indexOf('http') === 0 || href.indexOf('amazon') !== -1);
+        
+        let markdown = `[${content}](${href}`;
+        if (title) markdown += ` "${title}"`;
+        markdown += ')';
+        
+        // Add an HTML comment for external links that will be processed later
+        if (isExternal) {
+          markdown += ' <!-- external -->';
+        }
+        
+        return markdown;
+      }
+    });
+
+    // Custom image rule
+    service.addRule('images', {
+      filter: 'img',
+      replacement: (content, node) => {
+        const alt = node.getAttribute('alt') || '';
+        const src = node.getAttribute('src') || '';
+        const title = node.getAttribute('title') ? ` "${node.getAttribute('title')}"` : '';
+        return `![${alt}](${src}${title})`;
+      }
+    });
+
+    return service;
+  };
+
   const handleFileSelect = (selectedFile) => {
     if (selectedFile.type !== 'text/html' && !selectedFile.name.toLowerCase().endsWith('.html')) {
       setError('Please select a valid HTML file');
@@ -124,44 +215,7 @@ const HtmlUploader = () => {
         
         setRawHtmlContent(bodyContent);
 
-        const turndownService = new TurndownService({
-          headingStyle: 'atx',
-          hr: '---',
-          bulletListMarker: '-',
-          codeBlockStyle: 'fenced'
-        });
-
-        // Add rules to exclude HTML structure elements
-        turndownService.addRule('ignoreDoctype', {
-          filter: node => node.nodeType === 10, // Document type node
-          replacement: () => ''
-        });
-
-        turndownService.addRule('ignoreHead', {
-          filter: 'head',
-          replacement: () => ''
-        });
-
-        turndownService.addRule('ignoreScript', {
-          filter: 'script',
-          replacement: () => ''
-        });
-
-        turndownService.addRule('ignoreStyle', {
-          filter: 'style',
-          replacement: () => ''
-        });
-
-        // Custom image rule
-        turndownService.addRule('images', {
-          filter: 'img',
-          replacement: (content, node) => {
-            const alt = node.getAttribute('alt') || '';
-            const src = node.getAttribute('src') || '';
-            const title = node.getAttribute('title') ? ` "${node.getAttribute('title')}"` : '';
-            return `![${alt}](${src}${title})`;
-          }
-        });
+        const turndownService = createTurndownService();
 
         // Convert HTML to Markdown
         const markdownContent = turndownService.turndown(bodyContent);
@@ -295,8 +349,10 @@ const HtmlUploader = () => {
 
       const slug = metadata.slug || slugify(metadata.title.toLowerCase());
       
-      // Use the properly configured marked instance
+      // Convert markdown to HTML with external links in new tabs
       const htmlContent = marked(markdown);
+      
+      // Sanitize HTML but preserve target and rel attributes
       const cleanHtml = DOMPurify.sanitize(htmlContent, {
         ALLOWED_TAGS: [
           'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'br', 'hr',
@@ -304,7 +360,7 @@ const HtmlUploader = () => {
           'em', 'strong', 'del', 'a', 'img', 'table', 'thead', 
           'tbody', 'tr', 'th', 'td', 'div', 'span'
         ],
-        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id'],
+        ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'id', 'target', 'rel'],
         KEEP_CONTENT: true
       });
 
